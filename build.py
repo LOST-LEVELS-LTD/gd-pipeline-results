@@ -51,10 +51,20 @@ PLAYER_NAV = [
     ("verdict.html", "Вердикт фазы"),
 ]
 
+ROLES_NAV = [
+    ("index.html", "Обзор ролей"),
+    ("generator.html", "Генератор"),
+    ("concept.html", "Концептер"),
+    ("critic.html", "Критик"),
+    ("player.html", "Игрок"),
+    ("orchestrator.html", "Оркестратор (скилл)"),
+]
+
 GROUPS = [
     ("run4", "run-4", "Прогон №4 — Простой язык", RUN4_NAV),
     ("run3", "run-3", "Прогон №3 — Новые территории", RUN3_NAV),
     ("player", "player", "Фаза «Игрок» — симуляция", PLAYER_NAV),
+    ("roles", "roles", "Роли конвейера — промпты", ROLES_NAV),
 ]
 
 
@@ -163,11 +173,100 @@ SECTIONS = [
 ]
 
 
+# (stem, h1_ru, h1_en)
+ROLES = [
+    ("generator", "Роль «Генератор»", "Role: Generator"),
+    ("concept", "Роль «Концептер»", "Role: Concept Writer"),
+    ("critic", "Роль «Критик»", "Role: Critic"),
+    ("player", "Роль «Игрок»", "Role: Player"),
+    ("orchestrator", "Оркестратор (скилл)", "Orchestrator (skill)"),
+]
+ROLES_TITLE = "Роли конвейера — промпты"
+ROLES_DESC = "Системные промпты ролей конвейера gd-pipeline, русский оригинал и английский перевод"
+
+
 def render(tpl, **kw):
     out = tpl
     for k, v in kw.items():
         out = out.replace("@@" + k.upper() + "@@", v)
     return out
+
+
+def split_front(text):
+    """Отделяет YAML-frontmatter; возвращает (meta_html, body_md)."""
+    if not text.startswith("---\n"):
+        return "", text
+    end = text.index("\n---", 4)
+    meta_html = []
+    for line in text[4:end].splitlines():
+        if ":" not in line:
+            continue
+        key, val = line.split(":", 1)
+        key, val = key.strip(), val.strip()
+        if key in ("name", "tools"):
+            meta_html.append(f"<code>{key}: {val}</code>")
+        elif key == "description":
+            meta_html.append(f"<blockquote>{val}</blockquote>")
+    codes = " · ".join(x for x in meta_html if x.startswith("<code>"))
+    quote = "".join(x for x in meta_html if x.startswith("<blockquote>"))
+    return f'<p class="rolemeta">{codes}</p>{quote}', text[end + 4:]
+
+
+def build_roles():
+    out = DOCS / "roles"
+    out.mkdir(parents=True, exist_ok=True)
+    rel = "../"
+
+    # обзорная страница раздела
+    MD.reset()
+    body = MD.convert((CONTENT / "roles" / "_overview.md").read_text(encoding="utf-8"))
+    html = render(
+        PAGE, title="Роли конвейера", desc=ROLES_DESC, rel=rel,
+        crumbs=f'<a href="{rel}index.html">Обзор</a> · {ROLES_TITLE} · Обзор ролей',
+        over=ROLES_TITLE, h1="Роли конвейера", doctype="обзор раздела", body=body,
+        prev=f'<a href="{rel}index.html">← Обзор</a>',
+        next=f'<a href="generator.html">{ROLES[0][1]} →</a>',
+        sidenav=sidenav(rel, "roles", "index.html"),
+    )
+    (out / "index.html").write_text(html, encoding="utf-8")
+    print("  roles/index.html")
+
+    for lang in ("ru", "en"):
+        for i, (stem, h1_ru, h1_en) in enumerate(ROLES):
+            src_dir = "roles" if lang == "ru" else "roles-en"
+            suffix = "" if lang == "ru" else "-en"
+            h1 = h1_ru if lang == "ru" else h1_en
+            meta_html, body_md = split_front(
+                (CONTENT / src_dir / f"{stem}.md").read_text(encoding="utf-8"))
+            MD.reset()
+            body = MD.convert(body_md)
+            if lang == "ru":
+                switch = f'<p class="langsw"><a href="{stem}-en.html">English version →</a></p>'
+            else:
+                switch = f'<p class="langsw"><a href="{stem}.html">← Русская версия</a></p>'
+            body = switch + meta_html + body
+            prev_html = next_html = ""
+            if i > 0:
+                p = ROLES[i - 1]
+                prev_html = (f'<a href="{p[0]}{suffix}.html">← '
+                             f'{p[1] if lang == "ru" else p[2]}</a>')
+            elif lang == "ru":
+                prev_html = '<a href="index.html">← Обзор ролей</a>'
+            if i < len(ROLES) - 1:
+                n = ROLES[i + 1]
+                next_html = (f'<a href="{n[0]}{suffix}.html">'
+                             f'{n[1] if lang == "ru" else n[2]} →</a>')
+            html = render(
+                PAGE, title=h1, desc=ROLES_DESC, rel=rel,
+                crumbs=(f'<a href="{rel}index.html">Обзор</a> · '
+                        f'<a href="index.html">{ROLES_TITLE}</a> · {h1}'),
+                over=ROLES_TITLE, h1=h1,
+                doctype="системный промпт" if lang == "ru" else "system prompt",
+                body=body, prev=prev_html, next=next_html,
+                sidenav=sidenav(rel, "roles", f"{stem}.html"),
+            )
+            (out / f"{stem}{suffix}.html").write_text(html, encoding="utf-8")
+            print(f"  roles/{stem}{suffix}.html")
 
 
 def build():
@@ -196,6 +295,7 @@ def build():
             )
             (out / dst).write_text(html, encoding="utf-8")
             print(f"  {out_dir}/{dst}")
+    build_roles()
     # рукописные страницы из шаблонов
     idx = (TEMPLATES / "index.html").read_text(encoding="utf-8")
     (DOCS / "index.html").write_text(

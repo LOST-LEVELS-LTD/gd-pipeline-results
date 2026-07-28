@@ -164,6 +164,11 @@ a:hover{color:var(--rail)}
 .pstats .n{font-family:var(--disp);font-size:22px;display:block;line-height:1.15}
 .pstats .l{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
 
+/* страницы ролей */
+.langsw{font-family:var(--mono);font-size:13px;margin:0 0 14px;text-align:right}
+.rolemeta{font-family:var(--mono);font-size:12.5px;color:var(--ink2);margin:0 0 4px}
+.rolemeta code{background:var(--paper2);padding:.15em .5em;border-radius:3px}
+
 /* таблица партий */
 .parties{border-collapse:collapse;width:100%;font-size:14.5px;margin:1.2em 0;display:block;overflow-x:auto}
 .parties th,.parties td{border:1px solid var(--line);padding:8px 12px;text-align:left}
