@@ -19,3 +19,8 @@
 - `build.py` — генератор: markdown → страницы-документы, подстановка навигации в шаблоны.
 
 Пересборка: `pip install markdown && python build.py`.
+
+## PDF-версия
+
+Один файл со всей документацией и навигацией (закладки = сайдбар сайта, кликабельное оглавление, внутренние ссылки):
+`pip install markdown weasyprint && python make_pdf.py` → `export/gd-pipeline-results.pdf`.
